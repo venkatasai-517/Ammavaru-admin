@@ -4,6 +4,7 @@ import Viralam from "./components/Viralam";
 import Photos from "./components/Photos";
 import Adds from "./components/Adds";
 import Header from "./components/Header";
+import MFooter from "./components/Mobilefooter";
 const App = () => {
   return (
     <>
@@ -16,6 +17,7 @@ const App = () => {
           <Route path="/photos" Component={Photos} />
           <Route path="/adds" Component={Adds} />
         </Routes>
+        <MFooter />
       </Router>
     </>
   );
