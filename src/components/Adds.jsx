@@ -1,10 +1,22 @@
 import { saveAs } from "file-saver";
 import { storage, firestore } from "../firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+} from "firebase/firestore";
 import { useState, useEffect } from "react";
 
-const Photos = () => {
+const Adds = () => {
   const [images, setImages] = useState([]);
   const [videos, setVideos] = useState([]);
   const [visibleImages, setVisibleImages] = useState(6); // Number of images to show initially
@@ -16,7 +28,7 @@ const Photos = () => {
   useEffect(() => {
     const fetchFiles = async () => {
       try {
-        const querySnapshot = await getDocs(collection(firestore, "Adds"));
+        const querySnapshot = await getDocs(collection(firestore, "adds"));
         const files = [];
         querySnapshot.forEach((doc) => {
           files.push({ id: doc.id, ...doc.data() });
@@ -40,7 +52,7 @@ const Photos = () => {
 
     const uploadPromises = selectedFiles.map(async (file) => {
       try {
-        const storageRef = ref(storage, `uploads/${file.name}`);
+        const storageRef = ref(storage, `adds/${file.name}`);
         await uploadBytes(storageRef, file);
         const downloadURL = await getDownloadURL(storageRef);
 
@@ -50,7 +62,7 @@ const Photos = () => {
           name: file.name,
         };
 
-        const docRef = await addDoc(collection(firestore, "uploads"), fileData);
+        const docRef = await addDoc(collection(firestore, "adds"), fileData);
         fileData.id = docRef.id;
 
         if (file.type.startsWith("image/")) {
@@ -65,7 +77,27 @@ const Photos = () => {
 
     await Promise.all(uploadPromises);
   };
+  const handleDelete = async (file) => {
+    if (window.confirm("Are you sure you want to delete this file?")) {
+      try {
+        const fileRef = ref(storage, `adds/${file.name}`);
+        await deleteObject(fileRef);
+        await deleteDoc(doc(firestore, "adds", file.id));
 
+        if (file.type.startsWith("image/")) {
+          setImages((prevImages) =>
+            prevImages.filter((img) => img.id !== file.id)
+          );
+        } else if (file.type.startsWith("video/")) {
+          setVideos((prevVideos) =>
+            prevVideos.filter((vid) => vid.id !== file.id)
+          );
+        }
+      } catch (error) {
+        console.error("Error deleting file: ", error.message);
+      }
+    }
+  };
   const handleDownload = async (url, filename) => {
     try {
       const response = await fetch(url, { mode: "cors" });
@@ -80,7 +112,31 @@ const Photos = () => {
       console.error("Download failed", error.message);
     }
   };
+  const handleEdit = async (file) => {
+    const newName = prompt("Enter new name for the file:", file.name);
+    if (newName) {
+      try {
+        const fileRef = doc(firestore, "adds", file.id);
+        await updateDoc(fileRef, { name: newName });
 
+        if (file.type.startsWith("image/")) {
+          setImages((prevImages) =>
+            prevImages.map((img) =>
+              img.id === file.id ? { ...img, name: newName } : img
+            )
+          );
+        } else if (file.type.startsWith("video/")) {
+          setVideos((prevVideos) =>
+            prevVideos.map((vid) =>
+              vid.id === file.id ? { ...vid, name: newName } : vid
+            )
+          );
+        }
+      } catch (error) {
+        console.error("Error editing file: ", error.message);
+      }
+    }
+  };
   const handleShare = async (url) => {
     if (navigator.share) {
       try {
@@ -215,7 +271,7 @@ const Photos = () => {
             >
               <i className="bi bi-x-lg"></i>
             </button>
-            {selectedFile.type.startsWith("image/") ? (
+            {selectedFile.type.startsWith("image/", "videos/") ? (
               <img
                 className="w-50 h-50 mb-4"
                 src={selectedFile.url}
@@ -239,6 +295,18 @@ const Photos = () => {
               >
                 <i className="bi bi-share"></i>
               </button>
+              <button
+                onClick={() => handleEdit(selectedFile)}
+                className="bg-yellow-500 text-white px-4 py-2 rounded"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => handleDelete(selectedFile)}
+                className="bg-red-500 text-white px-4 py-2 rounded"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
@@ -247,4 +315,4 @@ const Photos = () => {
   );
 };
 
-export default Photos;
+export default Adds;

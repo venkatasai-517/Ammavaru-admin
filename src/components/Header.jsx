@@ -117,11 +117,11 @@ export default function Header() {
                     Viralam
                   </Link>
                 </li>
-                {/* <li className="nav-item">
-                  <Link className="nav-link" to="/app">
-                    Committee
+                <li className="nav-item">
+                  <Link className="nav-link" to="/adds">
+                    Adds
                   </Link>
-                </li> */}
+                </li>
               </ul>
             </div>
           </div>
